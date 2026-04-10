@@ -14,6 +14,7 @@ body {
   flex-direction: column;
   align-items: center;
   color: white;
+  touch-action: none;
 }
 
 h1 {
@@ -26,14 +27,25 @@ canvas {
   box-shadow: 0 0 20px rgba(255,255,0,0.2);
 }
 
+/* BUTTON */
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background: red;
+  color: white;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
 /* OVERLAY */
 #overlay {
   position: fixed;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.92);
+  top: 0;
+  left: 0;
   display: none;
   flex-direction: column;
   justify-content: center;
@@ -42,42 +54,26 @@ canvas {
 }
 
 #overlay img {
-  width: 220px;
-  border-radius: 12px;
+  width: 200px;
+  border-radius: 10px;
   margin-bottom: 10px;
-}
-
-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 20px;
-  background: red;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-button:hover {
-  background: darkred;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Snake game🐍</h1>
+<h1>Snake Bite🐍</h1>
 
 <canvas id="game" width="400" height="400"></canvas>
+
+<button onclick="restartGame()">Restart Relapse</button>
 
 <div id="overlay">
   <img src="sad.jpg">
   <h2>💔 Relationship Over</h2>
-  <p>
-    🎶Okay lang yan, Bading ka naman🎶 <br>
-    
-  </p>
-  <button onclick="restartGame()">Start New Relapse😢</button>
+  <p>🎶Okay lang yan, Bading ka naman🎶</p>
+  <button onclick="restartGame()">New Relapse😢</button>
 </div>
 
 <audio id="music" loop>
@@ -97,7 +93,7 @@ let lastTime = 0;
 let running = true;
 let musicReady = false;
 
-/* INIT GAME */
+/* INIT */
 function init() {
   snake = [{x:10,y:10}];
   dir = {x:1,y:0};
@@ -112,7 +108,7 @@ function init() {
   requestAnimationFrame(loop);
 }
 
-/* RANDOM POSITION */
+/* RANDOM */
 function randomPos() {
   return {
     x: Math.floor(Math.random()*grid),
@@ -120,31 +116,60 @@ function randomPos() {
   };
 }
 
-/* WRAP AROUND FUNCTION */
+/* WRAP */
 function wrap(v) {
   if (v < 0) return grid - 1;
   if (v >= grid) return 0;
   return v;
 }
 
-/* ENABLE MUSIC (browser fix) */
-document.addEventListener("keydown", () => {
-  if (musicReady) return;
+/* MUSIC ENABLE (fix browser block) */
+document.addEventListener("touchstart", enableMusic, {once:true});
+document.addEventListener("keydown", enableMusic, {once:true});
 
+function enableMusic() {
+  if (musicReady) return;
   const music = document.getElementById("music");
-  music.play().then(() => {
+
+  music.play().then(()=>{
     music.pause();
     music.currentTime = 0;
     musicReady = true;
   }).catch(()=>{});
-}, { once:true });
+}
 
-/* CONTROLS */
+/* KEYBOARD CONTROLS */
 document.addEventListener("keydown", e => {
   if (e.key === "ArrowUp" && dir.y !== 1) nextDir = {x:0,y:-1};
   if (e.key === "ArrowDown" && dir.y !== -1) nextDir = {x:0,y:1};
   if (e.key === "ArrowLeft" && dir.x !== 1) nextDir = {x:-1,y:0};
   if (e.key === "ArrowRight" && dir.x !== -1) nextDir = {x:1,y:0};
+});
+
+/* MOBILE SWIPE CONTROLS */
+let startX, startY;
+
+document.addEventListener("touchstart", e => {
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+});
+
+document.addEventListener("touchmove", e => {
+  if (!startX || !startY) return;
+
+  let diffX = e.touches[0].clientX - startX;
+  let diffY = e.touches[0].clientY - startY;
+
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    if (diffX > 0 && dir.x !== -1) nextDir = {x:1,y:0};
+    else if (diffX < 0 && dir.x !== 1) nextDir = {x:-1,y:0};
+  } else {
+    if (diffY > 0 && dir.y !== -1) nextDir = {x:0,y:1};
+    else if (diffY < 0 && dir.y !== 1) nextDir = {x:0,y:-1};
+  }
+
+  startX = null;
+  startY = null;
 });
 
 /* LOOP */
@@ -169,12 +194,12 @@ function update() {
     y: wrap(snake[0].y + dir.y)
   };
 
-  // self collision only
+  // self collision
   if (snake.some(s => s.x === head.x && s.y === head.y)) {
     return gameOver();
   }
 
-  // poison (same red apple)
+  // poison
   if (head.x === poison.x && head.y === poison.y) {
     return gameOver();
   }
@@ -196,14 +221,14 @@ function draw() {
 
   // snake (yellow)
   snake.forEach((s,i)=>{
-    ctx.fillStyle = i === 0 ? "#fff176" : "#ffeb3b";
+    ctx.fillStyle = i===0 ? "#fff176" : "#ffeb3b";
     ctx.fillRect(s.x*20,s.y*20,18,18);
   });
 
-  // ALL RED APPLES (NORMAL + POISON)
+  // ALL RED APPLES
   ctx.fillStyle = "red";
-  ctx.fillRect(food.x*20, food.y*20, 18, 18);
-  ctx.fillRect(poison.x*20, poison.y*20, 18, 18);
+  ctx.fillRect(food.x*20,food.y*20,18,18);
+  ctx.fillRect(poison.x*20,poison.y*20,18,18);
 }
 
 /* GAME OVER */
