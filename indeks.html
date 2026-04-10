@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake bite by sol</title>
+
+<style>
+body {
+  margin: 0;
+  background: linear-gradient(135deg,#0f0f0f,#1c1c1c);
+  font-family: Arial;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+}
+
+h1 {
+  margin: 10px;
+}
+
+canvas {
+  background: #111;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(255,255,0,0.2);
+}
+
+/* OVERLAY */
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.92);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+#overlay img {
+  width: 220px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background: red;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+button:hover {
+  background: darkred;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Snake game🐍</h1>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<div id="overlay">
+  <img src="sad.jpg">
+  <h2>💔 Relationship Over</h2>
+  <p>
+    🎶Okay lang yan, Bading ka naman🎶 <br>
+    
+  </p>
+  <button onclick="restartGame()">Start New Relapse😢</button>
+</div>
+
+<audio id="music" loop>
+  <source src="sed.mp3">
+</audio>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const grid = 20;
+
+let snake, dir, nextDir;
+let food, poison;
+let speed = 140;
+let lastTime = 0;
+let running = true;
+let musicReady = false;
+
+/* INIT GAME */
+function init() {
+  snake = [{x:10,y:10}];
+  dir = {x:1,y:0};
+  nextDir = {x:1,y:0};
+
+  food = randomPos();
+  poison = randomPos();
+
+  running = true;
+  document.getElementById("overlay").style.display = "none";
+
+  requestAnimationFrame(loop);
+}
+
+/* RANDOM POSITION */
+function randomPos() {
+  return {
+    x: Math.floor(Math.random()*grid),
+    y: Math.floor(Math.random()*grid)
+  };
+}
+
+/* WRAP AROUND FUNCTION */
+function wrap(v) {
+  if (v < 0) return grid - 1;
+  if (v >= grid) return 0;
+  return v;
+}
+
+/* ENABLE MUSIC (browser fix) */
+document.addEventListener("keydown", () => {
+  if (musicReady) return;
+
+  const music = document.getElementById("music");
+  music.play().then(() => {
+    music.pause();
+    music.currentTime = 0;
+    musicReady = true;
+  }).catch(()=>{});
+}, { once:true });
+
+/* CONTROLS */
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowUp" && dir.y !== 1) nextDir = {x:0,y:-1};
+  if (e.key === "ArrowDown" && dir.y !== -1) nextDir = {x:0,y:1};
+  if (e.key === "ArrowLeft" && dir.x !== 1) nextDir = {x:-1,y:0};
+  if (e.key === "ArrowRight" && dir.x !== -1) nextDir = {x:1,y:0};
+});
+
+/* LOOP */
+function loop(time) {
+  if (!running) return;
+
+  if (time - lastTime > speed) {
+    update();
+    lastTime = time;
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* UPDATE */
+function update() {
+  dir = nextDir;
+
+  let head = {
+    x: wrap(snake[0].x + dir.x),
+    y: wrap(snake[0].y + dir.y)
+  };
+
+  // self collision only
+  if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    return gameOver();
+  }
+
+  // poison (same red apple)
+  if (head.x === poison.x && head.y === poison.y) {
+    return gameOver();
+  }
+
+  // food
+  if (head.x === food.x && head.y === food.y) {
+    food = randomPos();
+  } else {
+    snake.pop();
+  }
+
+  snake.unshift(head);
+}
+
+/* DRAW */
+function draw() {
+  ctx.fillStyle = "#111";
+  ctx.fillRect(0,0,400,400);
+
+  // snake (yellow)
+  snake.forEach((s,i)=>{
+    ctx.fillStyle = i === 0 ? "#fff176" : "#ffeb3b";
+    ctx.fillRect(s.x*20,s.y*20,18,18);
+  });
+
+  // ALL RED APPLES (NORMAL + POISON)
+  ctx.fillStyle = "red";
+  ctx.fillRect(food.x*20, food.y*20, 18, 18);
+  ctx.fillRect(poison.x*20, poison.y*20, 18, 18);
+}
+
+/* GAME OVER */
+function gameOver() {
+  running = false;
+  document.getElementById("overlay").style.display = "flex";
+
+  const music = document.getElementById("music");
+
+  if (musicReady) {
+    music.currentTime = 0;
+    music.play().catch(()=>{});
+  }
+}
+
+/* RESTART */
+function restartGame() {
+  const music = document.getElementById("music");
+  music.pause();
+  music.currentTime = 0;
+
+  init();
+}
+
+/* START */
+init();
+</script>
+
+</body>
+</html>
